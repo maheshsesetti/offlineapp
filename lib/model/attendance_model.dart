@@ -25,6 +25,9 @@ class AttendanceModel extends HiveObject {
   @HiveField(6)
   double? checkOutLongitude;
 
+    @HiveField(7)
+  String? date;
+
   AttendanceModel({
     this.name,
     this.checkIn,
@@ -33,6 +36,7 @@ class AttendanceModel extends HiveObject {
     this.checkInLongitude,
     this.checkOutLatitude,
     this.checkOutLongitude,
+    this.date,
   });
 
   @override
@@ -43,7 +47,8 @@ AttendanceModel(
   checkIn: $checkIn, 
   checkOut: $checkOut,
   checkInLatLng: ($checkInLatitude, $checkInLongitude),
-  checkOutLatLng: ($checkOutLatitude, $checkOutLongitude)
+  checkOutLatLng: ($checkOutLatitude, $checkOutLongitude),
+  date : $date
 )''';
   }
 }
