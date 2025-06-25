@@ -25,13 +25,15 @@ class AttendanceModelAdapter extends TypeAdapter<AttendanceModel> {
       checkOutLatitude: fields[5] as double?,
       checkOutLongitude: fields[6] as double?,
       date: fields[7] as String?,
+      isCheckIn: fields[8] as bool?,
+      isCheckedout: fields[9] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, AttendanceModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -47,7 +49,11 @@ class AttendanceModelAdapter extends TypeAdapter<AttendanceModel> {
       ..writeByte(6)
       ..write(obj.checkOutLongitude)
       ..writeByte(7)
-      ..write(obj.date);
+      ..write(obj.date)
+      ..writeByte(8)
+      ..write(obj.isCheckIn)
+      ..writeByte(9)
+      ..write(obj.isCheckedout);
   }
 
   @override

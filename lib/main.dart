@@ -78,24 +78,15 @@ class AttendanceWidget extends StatefulWidget {
 class _AttendanceWidgetState extends State<AttendanceWidget> {
   late Timer _timer;
   late String _currentTime;
-  final Box<AttendanceModel> attendanceBox = Hive.box<AttendanceModel>(
-    'attendanceBox',
-  );
+  final Box<AttendanceModel> attendanceBox = Hive.box<AttendanceModel>('attendanceBox');
   final _nameController = TextEditingController(text: "Mahesh");
-
-  //bool isButtonEnabled = false;
 
   dynamic lat = 0.0;
   dynamic lng = 0.0;
 
-  bool isFlag = false;
-
   @override
   void initState() {
-    // debugPrint("attendance list in hive ${attendanceBox.getAt(0)}");
     super.initState();
-    checkDate();
-    //checkButtonState();
     Future.delayed(Duration.zero, () => handleLocationPermission());
     _currentTime = _formatDateTime(DateTime.now());
     _timer = Timer.periodic(
@@ -112,73 +103,64 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
   }
 
   String _formatDateTime(DateTime dateTime) {
-    return DateFormat('hh:mm a').format(dateTime); // AM/PM format
+    return DateFormat('hh:mm a').format(dateTime);
   }
 
   String _formatDate(DateTime dateTime) {
-    return DateFormat('yyyy-MM-dd').format(dateTime); // AM/PM format
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
+    return DateFormat('yyyy-MM-dd').format(dateTime);
   }
 
   void _checkIn() {
     final name = _nameController.text.trim();
-    if (name.isNotEmpty) {
-      final entry = AttendanceModel(
+    if (name.isEmpty) return;
+
+    final today = _formatDate(DateTime.now());
+
+    AttendanceModel? entry = attendanceBox.get(today);
+    if (entry == null) {
+      entry = AttendanceModel(
         name: name,
         checkIn: DateTime.now(),
         checkInLatitude: lat,
         checkInLongitude: lng,
-        date: _formatDate(DateTime.now()),
+        date: today,
       );
-      attendanceBox.add(entry);
-
-      debugPrint("attendance list in hive $attendanceBox");
-      _nameController.clear();
-      checkDate();
-      setState(() {});
-    }
-  }
-
-  void _checkOut(int index) {
-    final entry = attendanceBox.getAt(index);
-    if (entry != null && entry.checkOut == null) {
-      entry.checkOut = DateTime.now();
-      entry.checkOutLatitude = lat;
-      entry.checkOutLongitude = lng;
-      entry.save();
-      checkDate();
-    }
-  }
-
-  void checkDate() {
-    if (attendanceBox.values.isNotEmpty) {
-      for (var e in attendanceBox.values) {
-        if (e.date.toString() == _formatDate(DateTime.now())) {
-          isFlag = true;
-          break;
-        }
+    } else {
+      if (entry.checkIn == null) {
+        entry.checkIn = DateTime.now();
+        entry.checkInLatitude = lat;
+        entry.checkInLongitude = lng;
       }
     }
+
+    attendanceBox.put(today, entry);
+    _nameController.clear();
+    setState(() {});
   }
 
-  // void checkButtonState() {
-  //   final now = DateTime.now();
-  //   final targetTime = DateTime(now.year, now.month, now.day + 1, 0, 1);
+  void _checkOut() {
+    final today = _formatDate(DateTime.now());
 
-  //   if (now.isAfter(targetTime)) {
-  //     setState(() => isButtonEnabled = true);
-  //   } else {
-  //     final duration = targetTime.difference(now);
-  //     Timer(duration, () {
-  //       setState(() => isButtonEnabled = true);
-  //     });
-  //   }
-  // }
+    AttendanceModel? entry = attendanceBox.get(today);
+    if (entry == null) {
+      entry = AttendanceModel(
+        name: _nameController.text.trim(),
+        checkOut: DateTime.now(),
+        checkOutLatitude: lat,
+        checkOutLongitude: lng,
+        date: today,
+      );
+    } else {
+      if (entry.checkOut == null) {
+        entry.checkOut = DateTime.now();
+        entry.checkOutLatitude = lat;
+        entry.checkOutLongitude = lng;
+      }
+    }
+
+    attendanceBox.put(today, entry);
+    setState(() {});
+  }
 
   Future<void> handleLocationPermission() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -188,7 +170,6 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
-
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -197,21 +178,14 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       }
     }
 
-    if (permission == LocationPermission.denied) {
-      _showPermissionDeniedDialog();
-      return;
-    }
-
     if (permission == LocationPermission.deniedForever) {
       _showPermissionPermanentlyDeniedDialog();
       return;
     }
 
-    // All good, proceed
     Position position = await Geolocator.getCurrentPosition();
     lat = position.latitude;
     lng = position.longitude;
-    print("User location: $position");
   }
 
   Future<void> _showServiceDisabledDialog() async {
@@ -219,9 +193,7 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Location Disabled"),
-        content: const Text(
-          "Please enable location services to use this feature.",
-        ),
+        content: const Text("Please enable location services to use this feature."),
         actions: [
           TextButton(
             onPressed: () async {
@@ -235,32 +207,12 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
     );
   }
 
-  Future<void> _showRationaleDialog() async {
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Location Permission Needed"),
-        content: const Text(
-          "This app needs your location permission to function properly. Please allow location access.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showPermissionDeniedDialog() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Permission Denied"),
-        content: const Text(
-          "Location permission was denied. You can try again by restarting the app.",
-        ),
+        content: const Text("Location permission was denied. Try again by restarting the app."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -276,9 +228,7 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Permission Permanently Denied"),
-        content: const Text(
-          "Location permission is permanently denied. Please enable it manually in app settings.",
-        ),
+        content: const Text("Please enable location permission manually from app settings."),
         actions: [
           TextButton(
             onPressed: () async {
@@ -293,15 +243,27 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
   }
 
   @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final today = _formatDate(DateTime.now());
+    final AttendanceModel? todayEntry = attendanceBox.get(today);
+
+    final hasCheckedIn = todayEntry?.checkIn != null;
+    final hasCheckedOut = todayEntry?.checkOut != null;
+
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(offset: Offset(8, 8), color: Colors.blue.withAlpha(30)),
+          BoxShadow(offset: const Offset(8, 8), color: Colors.blue.withAlpha(30)),
         ],
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -313,7 +275,7 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FittedBox(
+          const FittedBox(
             fit: BoxFit.cover,
             child: Text(
               "Attendance",
@@ -328,85 +290,68 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
             fit: BoxFit.cover,
             child: Text(
               _currentTime,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          attendanceBox.isNotEmpty &&
-                  attendanceBox.getAt(0)?.checkIn != null &&
-                  isFlag
+          hasCheckedIn
               ? Row(
                   children: [
                     Container(
-                      padding: EdgeInsets.all(8),
+                      width: MediaQuery.of(context).size.width * 0.4,
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade200,
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: FittedBox(
                         fit: BoxFit.contain,
-                        child: Text(
-                          "Check In: ${attendanceBox.getAt(0)?.checkIn != null ? _formatDateTime(attendanceBox.getAt(0)!.checkIn!) : 'N/A'}",
-                        ),
+                        child: Text("Check In: ${_formatDateTime(todayEntry!.checkIn!)}"),
                       ),
                     ),
-                    SizedBox(width: 10),
-                    attendanceBox.isNotEmpty &&
-                            attendanceBox.getAt(0)?.checkOut != null &&
-                            isFlag
-                        ? Expanded(
-                            child: Container(
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade200,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: FittedBox(
-                                fit: BoxFit.cover,
-                                child: Text(
-                                  "Check Out: ${attendanceBox.getAt(0)?.checkOut != null ? _formatDateTime(attendanceBox.getAt(0)!.checkOut!) : 'N/A'}",
-                                ),
-                              ),
+                    const SizedBox(width: 10),
+                    hasCheckedOut
+                        ? Container(
+                            width: MediaQuery.of(context).size.width * 0.4,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade200,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.cover,
+                              child: Text("Check Out: ${_formatDateTime(todayEntry.checkOut!)}"),
                             ),
                           )
-                        : SizedBox(),
+                        : const SizedBox(),
                   ],
                 )
-              : SizedBox(),
-          SizedBox(height: 5),
+              : const SizedBox(),
+          const SizedBox(height: 5),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              fixedSize: Size.fromWidth(double.maxFinite),
+              fixedSize: const Size.fromWidth(double.maxFinite),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            onPressed:
-                attendanceBox.isEmpty ||
-                    attendanceBox.getAt(0)?.checkOut == null ||
-                    !isFlag
+            onPressed: !hasCheckedOut
                 ? () {
-                    if (attendanceBox.isEmpty ||
-                        attendanceBox.getAt(0)?.checkIn == null) {
-                      handleLocationPermission();
+                    handleLocationPermission();
+                    if (!hasCheckedIn) {
                       _checkIn();
                     } else {
-                      handleLocationPermission();
-                      _checkOut(0);
+                      _checkOut();
                     }
                   }
                 : null,
-            label: Text(
-              attendanceBox.isEmpty || attendanceBox.getAt(0)?.checkIn == null
-                  ? "CheckIn"
-                  : "CheckOut",
-            ),
-            icon: Icon(Icons.calendar_month),
+            label: Text(!hasCheckedIn ? "CheckIn" : "CheckOut"),
+            icon: const Icon(Icons.calendar_month),
           ),
-          SizedBox(height: 15),
+          const SizedBox(height: 15),
         ],
       ),
     );
