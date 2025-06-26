@@ -3,11 +3,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:offlineapp/internet_checker.dart';
 import 'package:offlineapp/model/attendance_model.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       home: ConnectivityWrapper(
         child: const MyHomePage(title: 'Flutter Attendence '),
@@ -57,11 +60,12 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           AttendanceWidget(),
-          Expanded(flex: 2, child: const Text('No Attendence List Found')),
+          CalenderWidget(),
+          // Expanded(flex: 2, child: const Text('No Attendence List Found')),
         ],
       ),
     );
@@ -78,7 +82,9 @@ class AttendanceWidget extends StatefulWidget {
 class _AttendanceWidgetState extends State<AttendanceWidget> {
   late Timer _timer;
   late String _currentTime;
-  final Box<AttendanceModel> attendanceBox = Hive.box<AttendanceModel>('attendanceBox');
+  final Box<AttendanceModel> attendanceBox = Hive.box<AttendanceModel>(
+    'attendanceBox',
+  );
   final _nameController = TextEditingController(text: "Mahesh");
 
   dynamic lat = 0.0;
@@ -86,6 +92,7 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
 
   @override
   void initState() {
+   
     super.initState();
     Future.delayed(Duration.zero, () => handleLocationPermission());
     _currentTime = _formatDateTime(DateTime.now());
@@ -93,6 +100,8 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       const Duration(seconds: 1),
       (Timer t) => _updateTime(),
     );
+
+     
   }
 
   void _updateTime() {
@@ -193,7 +202,9 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Location Disabled"),
-        content: const Text("Please enable location services to use this feature."),
+        content: const Text(
+          "Please enable location services to use this feature.",
+        ),
         actions: [
           TextButton(
             onPressed: () async {
@@ -212,7 +223,9 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Permission Denied"),
-        content: const Text("Location permission was denied. Try again by restarting the app."),
+        content: const Text(
+          "Location permission was denied. Try again by restarting the app.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -228,7 +241,9 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Permission Permanently Denied"),
-        content: const Text("Please enable location permission manually from app settings."),
+        content: const Text(
+          "Please enable location permission manually from app settings.",
+        ),
         actions: [
           TextButton(
             onPressed: () async {
@@ -253,6 +268,8 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
     final today = _formatDate(DateTime.now());
     final AttendanceModel? todayEntry = attendanceBox.get(today);
 
+    
+
     final hasCheckedIn = todayEntry?.checkIn != null;
     final hasCheckedOut = todayEntry?.checkOut != null;
 
@@ -263,7 +280,10 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(offset: const Offset(8, 8), color: Colors.blue.withAlpha(30)),
+          BoxShadow(
+            offset: const Offset(8, 8),
+            color: Colors.blue.withAlpha(30),
+          ),
         ],
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -309,7 +329,9 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
                       ),
                       child: FittedBox(
                         fit: BoxFit.contain,
-                        child: Text("Check In: ${_formatDateTime(todayEntry!.checkIn!)}"),
+                        child: Text(
+                          "Check In: ${_formatDateTime(todayEntry!.checkIn!)}",
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -323,7 +345,9 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
                             ),
                             child: FittedBox(
                               fit: BoxFit.cover,
-                              child: Text("Check Out: ${_formatDateTime(todayEntry.checkOut!)}"),
+                              child: Text(
+                                "Check Out: ${_formatDateTime(todayEntry.checkOut!)}",
+                              ),
                             ),
                           )
                         : const SizedBox(),
@@ -355,5 +379,66 @@ class _AttendanceWidgetState extends State<AttendanceWidget> {
         ],
       ),
     );
+  }
+}
+
+class CalenderWidget extends StatefulWidget {
+  const CalenderWidget({super.key});
+
+  @override
+  State<CalenderWidget> createState() => _CalenderWidgetState();
+}
+
+class _CalenderWidgetState extends State<CalenderWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.all(16),
+        child: SfCalendar(
+          view: CalendarView.day,
+           allowedViews: [
+          CalendarView.day,
+          CalendarView.week,
+          CalendarView.workWeek,
+          CalendarView.month,
+          CalendarView.schedule,
+          CalendarView.timelineDay,
+          CalendarView.timelineWeek,
+          CalendarView.timelineWorkWeek,
+          CalendarView.timelineMonth
+        ],
+          dataSource: _getCalendarDataSource(),
+          timeSlotViewSettings: const TimeSlotViewSettings(
+            timeIntervalHeight: 100,
+            startHour: 9,
+            endHour: 20,
+            nonWorkingDays: <int>[DateTime.saturday, DateTime.sunday]
+          ),
+        ),
+      ),
+    );
+  }
+
+  
+}
+
+_AppointmentDataSource _getCalendarDataSource() {
+  List<Appointment> appointments = <Appointment>[];
+  appointments.add(Appointment(
+    startTime: DateTime.now(),
+    endTime: DateTime.now().add(Duration(minutes: 10)),
+    subject: 'Meeting',
+    color: Colors.blue,
+    startTimeZone: '',
+    endTimeZone: '',
+  ));
+
+  return _AppointmentDataSource(appointments);
+}
+
+class _AppointmentDataSource extends CalendarDataSource {
+  _AppointmentDataSource(List<Appointment> source){
+   appointments = source; 
   }
 }

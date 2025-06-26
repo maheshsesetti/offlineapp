@@ -23,7 +23,8 @@ class _ConnectivityWrapperState extends State<ConnectivityWrapper> {
   }
 
   Future<void> _checkInternet() async {
-    final active = await InternetConnectionChecker.createInstance().hasConnection;
+    final active =
+        await InternetConnectionChecker.createInstance().hasConnection;
     setState(() => _hasInternet = active);
   }
 
@@ -35,8 +36,6 @@ class _ConnectivityWrapperState extends State<ConnectivityWrapper> {
     return widget.child;
   }
 }
-
-
 
 // class ConnectivityWrapper extends StatefulWidget {
 //   final Widget connectedChild;
@@ -81,43 +80,83 @@ class _ConnectivityWrapperState extends State<ConnectivityWrapper> {
 //   }
 // }
 
-
 class NoInternetScreen extends StatelessWidget {
- // final VoidCallback onRetry;
-  const NoInternetScreen({super.key,
-  //required this.onRetry
+  // final VoidCallback onRetry;
+  const NoInternetScreen({
+    super.key,
+    //required this.onRetry
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
+      appBar: AppBar(
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         title: Text("Attendance"),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
+      body: Stack(
         children: [
-           AttendanceWidget(),
-         Column(
-          children: [
-             Icon(Icons.wifi_off, size: 80, color: Colors.grey),
-          const SizedBox(height: 20),
-          const Text(
-            "No Internet Connection",
-            style: TextStyle(fontSize: 18),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              AttendanceWidget(),
+              CalenderWidget()
+            ],
           ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: (){},
-            child: const Text("Retry"),
-          )
-          ],
-         )
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: 115,
+              width: double.maxFinite,
+              padding: EdgeInsets.all(16),
+              margin: EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 20,
+
+                    child: Icon(
+                      Icons.wifi_off,
+                      size: 80,
+                      color: Colors.grey.shade600.withOpacity(0.2),
+                    ),
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "No Internet Connection",
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          child: Text("Retry", style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
-
